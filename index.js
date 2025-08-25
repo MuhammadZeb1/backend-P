@@ -2,7 +2,7 @@ import express from "express"
 import cors from "cors"
 import mongodbConnect from "./config/mongodb.js"
 
-import productRoute from "./routes/prodectRoutes.js"
+import productRoute from "./routes/productRoutes.js"
 import roleBasedAuthRoute from "./routes/roleBasedAuthRoute.js"
 
 const app = express()

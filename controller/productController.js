@@ -5,10 +5,10 @@ import Product from '../model/productModel.js';
 export const createProduct = async (req, res) => {
 
     try {
-            const {productName,title,price,category} = req.body;
+            const {productName,title,price,category,count} = req.body;
             const image =  req.file.filename;
-            console.log(productName,title,price,category,image);
-             if (!productName || !title || !price || !category || !image) {
+            console.log(productName,title,price,category,image,count);
+             if (!productName || !title || !price || !category || !image ||!count) {
                 return res.status(400).json({ message: "All fields are required" });
             }
             const newProduct = new Product({
@@ -18,6 +18,7 @@ export const createProduct = async (req, res) => {
                 category,
                 vendor:req.user.id,
                 image,
+                count,
             })
 
             await newProduct.save();
@@ -60,7 +61,7 @@ export const  readSingleProduct = async (req,res)=>{
 export const updateProduct = async (req,res)=>{
     try {
         const {id}=req.params;
-        const {productName,title,price,category} = req.body;
+        const {productName,title,price,category,count} = req.body;
         const image = req.file.filename;
 
         const updatedData = {};
@@ -69,6 +70,7 @@ export const updateProduct = async (req,res)=>{
         if (price) updatedData.price = price;
         if (category) updatedData.category = category;
         if (image) updatedData.image = image;
+        if (count) updatedData.count = count;
 
         const product = await Product.findById(id);
         if (!product) {
@@ -86,4 +88,27 @@ export const updateProduct = async (req,res)=>{
     }
 }
 
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // find product first
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // check ownership
+    if (product.vendor.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You are not authorized to delete this product" });
+    }
+
+    // delete after ownership check
+    await Product.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Product deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
 

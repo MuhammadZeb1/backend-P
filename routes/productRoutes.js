@@ -12,7 +12,9 @@ import auth from '../middleware/auth.js';
 const router = express.Router();
 
 // Create product
-router.post("/products", upload.single("image"), auth, createProduct);
+// ✔️ صحیح
+router.post("/createProduct", auth, upload.single("image"), createProduct);
+
 
 // Get all products
 router.get("/products", auth, readProducts);

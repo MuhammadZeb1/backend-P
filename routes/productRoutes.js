@@ -8,8 +8,12 @@ import {
 } from '../controller/productController.js';
 import upload from '../middleware/uploads.js';
 import auth from '../middleware/auth.js';
+import cloudinary from "../config/cloudinaryConfig.js"
+
 
 const router = express.Router();
+
+
 
 // Create product
 // ✔️ صحیح

@@ -10,6 +10,7 @@ app.use(cors({
     origin:"http://localhost:5173",
     credentials:true
 }))
+// app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(express.json())
 mongodbConnect()
 

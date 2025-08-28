@@ -11,7 +11,11 @@ const auth = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    req.user = decoded; // attach user info to request object
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role
+    }; // attach user info to request object
 
     // ✅ آگے controller کو بھیج دو
     next();  

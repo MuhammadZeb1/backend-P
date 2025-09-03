@@ -9,7 +9,7 @@ export const vendorDeshborad = async(req,res)=>{
         .status(404)
         .json({ status: false, message: "No vendors found" });
     }
-            res.status(200).json(vendors)
+            res.status(200).json({data:vendors})
     } catch (error) {
          res.status(500).json({ message: error.message });
     }
@@ -19,7 +19,8 @@ export const singleVendorProducts = async (req, res) => {
     const { id } = req.params; // vendor id
 
     // پہلے vendor نکالیں
-    const vendor = await Vendors.findById(id).select("name shopName shopType");
+    const vendor = await Vendors.findById(id)
+    .select("name shopName shopType role email");
 
     if (!vendor || vendor.role !== "vendor") {
       return res
@@ -28,7 +29,8 @@ export const singleVendorProducts = async (req, res) => {
     }
 
     // پھر اس vendor کے products نکالیں
-    const products = await Product.find({ vendor: id });
+    const products = await Product.find({ vendor: id })
+    // .populate("vendors","name shopName shopType");
 
     if (!products.length) {
       return res

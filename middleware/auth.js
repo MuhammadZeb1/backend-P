@@ -16,7 +16,7 @@ const auth = (req, res, next) => {
       email: decoded.email,
       role: decoded.role
     }; // attach user info to request object
-
+   console.log(req.user)
     // ✅ آگے controller کو بھیج دو
     next();  
 

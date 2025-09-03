@@ -1,23 +1,56 @@
 import mongoose from "mongoose";
 
 const roleBasedAuthSchema = new mongoose.Schema({
-    name:{
-        type:String,
-        required:true,  
+  name: {
+    type: String,
+    required: true,
+  },
+
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+
+  password: {
+    type: String,
+    required: true,
+  },
+
+  role: {
+    type: String,
+    enum: ["vendor", "customer", "delivery"],
+    default: "customer",
+  },
+
+  // ✅ Extra fields
+  address: {
+    type: String,
+    required:true
+  },
+
+  cnicNumber: {
+    type: String,
+    unique: true,
+    required:true
+  },
+
+  shopName: {
+    type: String,
+    required: function () {
+      return this.role === "vendor";
     },
-    email:{
-        type:String,
-        required:true,  
+  },
+
+  shopType: {
+    type: String,
+    enum: ["grocery", "electronics", "clothing", "pharmacy", "other"], 
+    required: function () {
+      return this.role === "vendor";
     },
-    password:{
-        type:String,
-        required:true,  
-    },
-    role:{
-        type:String,
-        enum:["vendor","customer","delivery"],
-        default:"customer"
-    }
-})
-const roleBasedAuthModel = mongoose.model("roleBasedAuth", roleBasedAuthSchema)
+  },
+});
+
+const roleBasedAuthModel = mongoose.model("roleBasedAuth", roleBasedAuthSchema);
+
 export default roleBasedAuthModel;

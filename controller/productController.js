@@ -96,7 +96,11 @@ export const updateProduct = async (req, res) => {
         folder: "products",
       });
       fs.unlinkSync(filePath);
-      updatedData.image = result.secure_url;
+      updatedData.image =  {
+        url: result.secure_url,
+        public_id: result.public_id,
+      }
+      
     }
 
     const product = await Product.findById(id);

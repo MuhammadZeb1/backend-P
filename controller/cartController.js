@@ -4,12 +4,12 @@ import Cart from "../model/cartModel.js";
 export const addToCart = async (req, res) => {
   try {
     const userId = req.user.id; // 🔑 JWT middleware
-    const { productId, quantity } = req.body;
+    const { productId, quantity,address } = req.body;
 
     let cart = await Cart.findOne({ userId });
 
     if (!cart) {
-      cart = new Cart({ userId, items: [{ productId, quantity, vendorAddress }] });
+      cart = new Cart({ userId, items: [{ productId, quantity, address }] });
     } else {
       const itemIndex = cart.items.findIndex(
         (item) => item.productId.toString() === productId
@@ -18,7 +18,7 @@ export const addToCart = async (req, res) => {
       if (itemIndex > -1) {
         cart.items[itemIndex].quantity += quantity;
       } else {
-        cart.items.push({ productId, quantity });
+        cart.items.push({ productId, quantity,address });
       }
     }
 

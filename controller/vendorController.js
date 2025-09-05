@@ -20,7 +20,7 @@ export const singleVendorProducts = async (req, res) => {
 
     // پہلے vendor نکالیں
     const vendor = await Vendors.findById(id)
-    .select("name shopName shopType role email");
+    .select("name shopName shopType role email address");
 
     if (!vendor || vendor.role !== "vendor") {
       return res

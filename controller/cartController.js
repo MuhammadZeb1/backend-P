@@ -1,4 +1,4 @@
-import Cart from "../models/Cart.js";
+import Cart from "../model/cartModel.js";
 
 // ✅ Add product to cart
 export const addToCart = async (req, res) => {
@@ -9,7 +9,7 @@ export const addToCart = async (req, res) => {
     let cart = await Cart.findOne({ userId });
 
     if (!cart) {
-      cart = new Cart({ userId, items: [{ productId, quantity }] });
+      cart = new Cart({ userId, items: [{ productId, quantity, vendorAddress }] });
     } else {
       const itemIndex = cart.items.findIndex(
         (item) => item.productId.toString() === productId

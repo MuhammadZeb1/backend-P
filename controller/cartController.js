@@ -1,15 +1,9 @@
-import express from "express";
 import Cart from "../models/Cart.js";
 
-const router = express.Router();
-
-/**
- * POST /api/cart
- * Add product to cart
- */
-router.post("/", async (req, res) => {
+// ✅ Add product to cart
+export const addToCart = async (req, res) => {
   try {
-    const userId = req.user.id; // 🔑 JWT middleware se aayega
+    const userId = req.user.id; // 🔑 JWT middleware
     const { productId, quantity } = req.body;
 
     let cart = await Cart.findOne({ userId });
@@ -29,31 +23,35 @@ router.post("/", async (req, res) => {
     }
 
     await cart.save();
-    res.status(200).json({ cart });
+    res.status(200).json({ message: "Product added to cart", cart });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-});
+};
 
-/**
- * GET /api/cart
- * Get logged-in user's cart
- */
-router.get("/", async (req, res) => {
+// ✅ Get user cart with total price
+export const getCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const cart = await Cart.findOne({ userId }).populate("items.productId");
-    res.status(200).json({ cartItems: cart ? cart.items : [] });
+
+    if (!cart) {
+      return res.status(200).json({ cartItems: [], totalPrice: 0 });
+    }
+
+    // total price calculate
+    const totalPrice = cart.items.reduce((total, item) => {
+      return total + item.productId.price * item.quantity;
+    }, 0);
+
+    res.status(200).json({ cartItems: cart.items, totalPrice });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-});
+};
 
-/**
- * DELETE /api/cart/:productId
- * Remove product from cart
- */
-router.delete("/:productId", async (req, res) => {
+// ✅ Remove product from cart
+export const removeFromCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const { productId } = req.params;
@@ -66,10 +64,8 @@ router.delete("/:productId", async (req, res) => {
     );
 
     await cart.save();
-    res.status(200).json({ message: "Product removed from cart" });
+    res.status(200).json({ message: "Product removed from cart", cart });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-});
-
-export default router;
+};

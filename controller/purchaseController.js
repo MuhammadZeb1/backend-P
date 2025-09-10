@@ -1,41 +1,33 @@
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import Purchase from "../model/purchseModel.js"; // ✅ correct import
+import Product from "../model/productModel.js";
 
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const purchaseProduct = async (req, res) => {
   try {
-    const { productId, userId, number, cvc, exp_month, exp_year, amount } = req.body;
+    const { productId, paymentMethodId, amount } = req.body;
+    const userId = req.user.id;
 
-    // Step 1: Create PaymentMethod
-    const paymentMethod = await stripe.paymentMethods.create({
-      type: "card",
-      card: {
-        number,
-        cvc,
-        exp_month,
-        exp_year,
-      },
-    });
-
-    // Step 2: Create PaymentIntent with that method
+    // ✅ Create PaymentIntent for card only, no redirect
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount * 100, // cents
+      amount: amount * 100, // amount in cents
       currency: "usd",
-      payment_method: paymentMethod.id,
+      payment_method: paymentMethodId,
       confirm: true,
+      payment_method_types: ["card"], // only card
+      // automatic_payment_methods: { enabled: true, allow_redirects: "never" }, // disables redirect warnings
     });
 
-    // Step 3: Check payment success
+    // Save purchase if succeeded
     if (paymentIntent.status === "succeeded") {
-      // Save purchase to DB
       const purchase = new Purchase({
         productId,
         userId,
-        stripePaymentId: paymentIntent.id, // save Stripe payment id for tracking
-        return_url: "http://localhost:3000/",
+        amount,
+        stripePaymentId: paymentIntent.id, // save Stripe ID
       });
       await purchase.save();
 
@@ -54,6 +46,9 @@ export const purchaseProduct = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+
 
 
 export const getPurchases = async (req, res) => {

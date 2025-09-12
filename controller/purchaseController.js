@@ -2,6 +2,8 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import Purchase from "../model/purchseModel.js"; // ✅ correct import
 import Product from "../model/productModel.js";
+import Cart from "../model/cartModel.js";
+import mongoose from "mongoose";
 
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -30,6 +32,12 @@ export const purchaseProduct = async (req, res) => {
         stripePaymentId: paymentIntent.id, // save Stripe ID
       });
       await purchase.save();
+
+      // Remove from cart after purchase
+       await Cart.updateOne(
+    { userId: new mongoose.Types.ObjectId(userId) },
+    { $pull: { items: { productId: new mongoose.Types.ObjectId(productId) } } }
+  );
 
       return res.status(200).json({
         message: "✅ Product purchased successfully",

@@ -9,8 +9,13 @@ const purchaseSchema = new mongoose.Schema(
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "roleBasedAuth",
       required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,      
+      default: 1,          
     },
     stripePaymentId: {
       type: String,

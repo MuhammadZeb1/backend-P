@@ -1,16 +1,17 @@
 import Stripe from "stripe";
 import dotenv from "dotenv";
-import Purchase from "../model/purchseModel.js"; // ✅ correct import
+import Purchase from "../model/purchseModel.js"; 
 import Product from "../model/productModel.js";
 import Cart from "../model/cartModel.js";
 import mongoose from "mongoose";
+import roleBasedAuthModel from "../model/roleBasedAuthModel.js";
 
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const purchaseProduct = async (req, res) => {
   try {
-    const { productId, paymentMethodId, amount } = req.body;
+    const { productId, paymentMethodId, amount,quantity } = req.body;
     const userId = req.user.id;
 
     // ✅ Create PaymentIntent for card only, no redirect
@@ -63,7 +64,7 @@ export const getPurchases = async (req, res) => {
   try {
     const userId = req.user.id; // 🔑 from auth middleware
     const purchases = await Purchase.find({ userId })
-      .populate("productId", "productName image price")   // product info
+      .populate("productId", "productName image price ")   // product info
       .populate("userId", "name email role");             
     res.status(200).json({ purchases });
   } catch (error) {

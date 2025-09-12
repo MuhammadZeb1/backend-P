@@ -5,7 +5,7 @@ import auth from "../middleware/auth.js";
 const router = express.Router();
 
 router.post("/purchase",auth, purchaseProduct)
-router.post("/purchase",auth, getPurchases)
-router.delete("/purchase",auth, deletePurchase)
+router.get("/purchase",auth, getPurchases)
+router.delete("/purchase/:id",auth, deletePurchase)
 
 export default router;

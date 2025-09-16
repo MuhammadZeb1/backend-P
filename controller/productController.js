@@ -52,7 +52,8 @@ export const createProduct = async (req, res) => {
 
 export const readProducts = async (req, res) => {
   try {
-    const products = await Product.find().populate("vendor", "name email role");
+    const id = req.user.id;
+    const products = await Product.findById(id).populate("vendor", "name email role");
 
     if (!products) {
       return res.status(404).json({ message: "No products found" });

@@ -12,7 +12,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const purchaseProduct = async (req, res) => {
   try {
-    const { productId, paymentMethodId, amount } = req.body;
+    const { productId, paymentMethodId, amount, address,phone } = req.body;
     const customerId = req.user.id;
 
     // ✅ Get quantity from cart instead of frontend
@@ -54,6 +54,8 @@ export const purchaseProduct = async (req, res) => {
         quantity, // ✅ use correct quantity here
         amount,
         stripePaymentId: paymentIntent.id,
+        address,
+        phone,
       });
       await purchase.save();
 
@@ -94,7 +96,7 @@ export const getVendorPurchases = async (req, res) => {
   try {
     const vendorId = req.user.id; // 🔑 from auth middleware
     const purchases = await Purchase.find({ vendorId})
-      .populate("productId", "productName image price ") // product info
+      .populate("productId", "productName image price ") 
       .populate("customerId", "name email role");
     res.status(200).json({ purchases });
   } catch (error) {

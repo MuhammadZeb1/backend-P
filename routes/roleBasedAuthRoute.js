@@ -8,8 +8,6 @@ route.post("/register", register)
 route.post("/login", login)
 route.post("/profile",auth, profile)
 
-//login
 
-//logout
 
 export default route;

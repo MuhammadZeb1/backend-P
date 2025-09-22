@@ -7,24 +7,20 @@ const purchaseSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
-    customerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "roleBasedAuth", // user who bought
-      required: true,
-    },
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "roleBasedAuth", // product owner
+      ref: "roleBasedAuth",
+      required: true,
+    },
+    coustomerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "roleBasedAuth",
       required: true,
     },
     quantity: {
       type: Number,
-      required: true,
-      default: 1,
-    },
-    amount: {
-      type: Number,
-      required: true,
+      required: true,      
+      default: 1,          
     },
     stripePaymentId: {
       type: String,

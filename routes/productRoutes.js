@@ -2,6 +2,7 @@ import express from 'express';
 import { 
   createProduct, 
   deleteProduct, 
+  readAllProducts, 
   readProducts, 
   readSingleProduct, 
   updateProduct 
@@ -21,6 +22,9 @@ router.post("/createProduct", auth, upload.single("image"), createProduct);
 
 
 // Get all products
+router.get("/allProducts", auth, readAllProducts);
+
+// Get vendor products
 router.get("/products", auth, readProducts);
 
 // Get single product

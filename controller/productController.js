@@ -50,6 +50,19 @@ export const createProduct = async (req, res) => {
   }
 };
 
+export const readAllProducts = async (req, res) => {
+  try {
+    
+    const products = await Product.find().populate("vendor", "name email role");
+
+    if (!products) {
+      return res.status(404).json({ message: "No products found" });
+    }
+    res.status(200).json({ meassage: "product fetch successfully", products });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
 export const readProducts = async (req, res) => {
   try {
     const id = req.user.id;

@@ -22,7 +22,7 @@ router.post("/createProduct", auth, upload.single("image"), createProduct);
 
 
 // Get all products
-router.get("/allProducts", auth, readAllProducts);
+router.get("/allProducts", readAllProducts);
 
 // Get vendor products
 router.get("/products", auth, readProducts);

@@ -3,6 +3,6 @@ import { allDelivery } from '../controller/allDeliveryController.js'
 
 const router = express.Router()
 
-router.get("allDelivery",allDelivery)
+router.get("/allDelivery",allDelivery)
 
 export default router

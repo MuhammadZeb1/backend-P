@@ -24,7 +24,7 @@ app.use("/vendor",vendorRoute)
 app.use("/vendor",vendorRoute)
 app.use("/carts",cartRouter)
 app.use("/purchase",purchaseRouter)
-app.use("allDelivery",deliveryRoute)
+app.use("/allDelivery",deliveryRoute)
 app.listen(1212,()=>{
     console.log("http://localhost:1212")
 })

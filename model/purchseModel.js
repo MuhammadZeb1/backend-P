@@ -14,7 +14,7 @@ const purchaseSchema = new mongoose.Schema(
     },
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "roleBasedAuth", // product owner
+      ref: "roleBasedAuth", 
       required: true,
     },
     quantity: {

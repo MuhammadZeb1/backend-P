@@ -3,7 +3,9 @@ import jwt from 'jsonwebtoken';
 const auth = (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    console.log(token + " token from auth middleware");
+    // console.log(token + " token from auth middleware");
+    // console.log("Decoded User from Token:", decoded);
+
     if (!token) {
       return res.status(401).json({
         status: "failed",

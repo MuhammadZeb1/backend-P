@@ -19,7 +19,7 @@ export const allDelivery = async (req, res) => {
 export const addDelivery = async (req, res) => {
   try {
     const vendorId = req.user.id;
-    // console.log("vendorId", vendorId);
+    
     const { deliveryId } = req.body;
 
     const newApproval = new deliveryBoyModel({
@@ -35,20 +35,26 @@ export const addDelivery = async (req, res) => {
   }
 };
 // Get all approved delivery boys for one vendor
+// Get all approved delivery boys for the logged-in vendor
 export const getApprovedDeliveries = async (req, res) => {
   try {
-    const { vendorId } = req.params;
+    const vendorId = req.user.id; // 🔒 Authenticated vendor ki ID
+    
 
     const approvedDeliveries = await deliveryBoyModel
-      .find({ vendorId })               // filter by vendorId
-      .populate("deliveryId", "name email") // delivery user ka data show karne k liye
-      .populate("vendorId", "name email");  // optional: vendor data bhi
+      .find({ vendorId }) // filter by only this vendorId
+      .populate("deliveryId", "name email address cnicNumber");
+
+    if (!approvedDeliveries || approvedDeliveries.length === 0) {
+      return res.status(404).json({ message: "No approved deliveries found" });
+    }
 
     res.status(200).json(approvedDeliveries);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 

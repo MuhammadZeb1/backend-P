@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import roleBasedAuthModel from "./roleBasedAuthModel.js";
+import VendorPurchase from "./vendorPurchaseModel.js";
 
 const vendorDeliverySchema = new mongoose.Schema({
   vendorId: {

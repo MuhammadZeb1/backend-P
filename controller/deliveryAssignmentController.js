@@ -8,8 +8,8 @@ import roleBasedAuthModel from "../model/roleBasedAuthModel.js";
  */
 export const assignDelivery = async (req, res) => {
   try {
-    const vendorId = req.user?.id 
-    console.log("vendor id :", vendorId)
+    const vendorId = req.user?.id;
+    console.log("vendor id :", vendorId);
     const { deliveryBoyId, purchaseId } = req.body;
 
     if (!vendorId || !deliveryBoyId || !purchaseId) {
@@ -19,7 +19,9 @@ export const assignDelivery = async (req, res) => {
     // ✅ Check vendor role
     const vendor = await roleBasedAuthModel.findById(vendorId);
     if (!vendor || vendor.role !== "vendor") {
-      return res.status(403).json({ message: "Only vendors can assign deliveries" });
+      return res
+        .status(403)
+        .json({ message: "Only vendors can assign deliveries" });
     }
 
     // ✅ Check delivery boy role
@@ -60,10 +62,16 @@ export const assignDelivery = async (req, res) => {
  */
 export const getVendorDeliveries = async (req, res) => {
   try {
-    const vendorId = req.user?._id || req.params.vendorId;
+    const vendorId = req.user?.id;
     const deliveries = await VendorDelivery.find({ vendorId })
       .populate("deliveryBoyId", "name email")
-      .populate("purchaseId");
+      .populate({
+        path: "purchaseId", // پہلا relation (VendorDelivery → VendorPurchase)
+        populate: {
+          path: "customerPurchaseId", // دوسرا relation (VendorPurchase → CustomerPurchase)
+          select: "customerName email totalAmount status", // کون سے fields چاہییں
+        },
+      });
     res.status(200).json(deliveries);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -75,7 +83,7 @@ export const getVendorDeliveries = async (req, res) => {
  */
 export const getDeliveryBoyDeliveries = async (req, res) => {
   try {
-    const deliveryBoyId = req.user?._id || req.params.deliveryBoyId;
+    const deliveryBoyId = req.user?.id;
     const deliveries = await DeliveryBoyDelivery.find({ deliveryBoyId })
       .populate("vendorId", "name email shopName")
       .populate("purchaseId");

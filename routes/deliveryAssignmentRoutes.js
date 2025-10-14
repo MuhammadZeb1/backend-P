@@ -9,6 +9,6 @@ const router = express.Router()
 
 // Define your delivery assignment routes here
 router.post('/assign', auth, assignDelivery);
-router.get('/vendor/:vendorId/deliveries', auth, getVendorDeliveries);
-router.get('/deliveryBoy/:deliveryBoyId/deliveries', auth, getDeliveryBoyDeliveries);
+router.get('/vendor/deliveries', auth, getVendorDeliveries);
+router.get('/deliveryBoy', auth, getDeliveryBoyDeliveries);
 export default router

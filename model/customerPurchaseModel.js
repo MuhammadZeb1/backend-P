@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+// kk
 
 const customerPurchaseSchema = new mongoose.Schema({
   customerId: {

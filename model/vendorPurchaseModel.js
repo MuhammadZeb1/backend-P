@@ -8,3 +8,4 @@ const vendorPurchaseSchema = new mongoose.Schema({
 });
 
 export default mongoose.model("VendorPurchase", vendorPurchaseSchema);
+// kkk

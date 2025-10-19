@@ -1,119 +1,115 @@
-import express from 'express'
-import User from "../model/roleBasedAuthModel.js"
-import bcrypt from "bcrypt"
-import jwt from "jsonwebtoken"
-//register
- // ✅ Register Controller
+import express from "express";
+import User from "../model/roleBasedAuthModel.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import cloudinary from "../config/cloudinaryConfig.js";
+import fs from "fs";
+
+// ✅ Register Controller
 export const register = async (req, res) => {
   try {
-    const {
-      name,
-      email,
-      password,
-      role,
-      address,
-      cnicNumber,
-      shopName,
-      shopType,
-    } = req.body;
+    const { name, email, password, role, address, cnicNumber, shopName, shopType } = req.body;
+    console.log(req.body)
 
-    // ✅ Required validation
-    if (!name || !email || !password || !role || !address || !cnicNumber) {
-      return res
-        .status(400)
-        .json({ status: "failed", message: "All fields are required" });
+    // ✅ Check required fields
+    if (!name || !email || !password || !address || !cnicNumber) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    // ✅ Extra checks if role is vendor
-    if (role === "vendor") {
-      if (!shopName || !shopType) {
-        return res.status(400).json({
-          status: "failed",
-          message: "Shop name and shop type are required for vendors",
-        });
-      }
+    // ✅ Check if user already exists
+    const emailExists = await User.findOne({ email });
+    if (emailExists) return res.status(400).json({ message: "Email already registered" });
+
+    const cnicExists = await User.findOne({ cnicNumber });
+    if (cnicExists) return res.status(400).json({ message: "CNIC already registered" });
+
+    // ✅ Vendor validation
+    if (role === "vendor" && (!shopName || !shopType)) {
+      return res.status(400).json({ message: "shopName and shopType are required for vendors" });
     }
 
-    // ✅ Check existing user
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ status: "failed", message: "User already exists" });
+    // ✅ Check image exists
+    if (!req.file) {
+      return res.status(400).json({ message: "Profile image is required" });
     }
 
-    // ✅ Check existing CNIC
-    const existingCNIC = await User.findOne({ cnicNumber });
-    if (existingCNIC) {
-      return res
-        .status(400)
-        .json({ status: "failed", message: "CNIC already registered" });
-    }
+    // ✅ Upload image to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, { folder: "users" });
+
+    // ✅ Remove local file
+    fs.unlinkSync(req.file.path);
 
     // ✅ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Create new user
-    const newUser = new User({
+    // ✅ Create user
+    const user = new User({
       name,
       email,
       password: hashedPassword,
       role,
       address,
       cnicNumber,
-      shopName: role === "vendor" ? shopName : undefined,
-      shopType: role === "vendor" ? shopType : undefined,
+      shopName,
+      shopType,
+      ImageUrl: result.secure_url,
     });
 
-    await newUser.save();
+    await user.save();
 
-    return res
-      .status(201)
-      .json({ status: "success", message: "User registered successfully" });
+    res.status(201).json({
+      message: "User registered successfully",
+      user,
+    });
   } catch (error) {
-    res.status(500).json({
-      status: "failed",
-      message: "Internal server error",
-      error: error.message,
-    });
+    console.error("Register Error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
-//login
- 
+// ✅ Login Controller
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-export const login = async (req,res)=>{
-    try {
-       const {email,password} = req.body;
-       
-       if(!email|| !password) return res.status(400).json({status:"failed",message:"All fields are required"});
-           const user = await User.findOne({ email });
-            if (!user) return res.status(400).json({ status: false, message: "User not found" });
-           const comparePassword = await bcrypt.compare(password, user.password);
-           if (!user || !comparePassword) return res.status(400).json({status:false,message:"Invalid credentials"});
+    if (!email || !password)
+      return res.status(400).json({ message: "All fields are required" });
 
-           const token = jwt.sign({id:user._id,email:user.email,role:user.role},process.env.SECRET_KEY, {expiresIn:"1d"});
-           console.log(req.headers)
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({ message: "User not found" });
 
-return res.status(200).json({
-  status: "success",
-  message: "User login successfully",
-  token,
-  role: user.role 
-});
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid credentials" });
 
-    } catch (error) {
-        res.status(500).json({status:"failed",message:"Internal server error",error:error.message});
-    }
-}
-// profile
-export const profile = async (req,res)=>{
-    try {
-        const user = await User.findById(req.user.id)
-        console.log(user)
-    } catch (error) {
-        
-    }
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.SECRET_KEY,
+      { expiresIn: "1d" }
+    );
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: { name: user.name, role: user.role }
+    });
+
+  } catch (error) {
     
-}
-    
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+// ✅ Profile Controller
+export const profile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({ user });
+
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

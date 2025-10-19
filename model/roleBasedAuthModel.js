@@ -11,6 +11,10 @@ const roleBasedAuthSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  ImageUrl: {
+    type: String,
+    required: true,
+  },
 
   password: {
     type: String,

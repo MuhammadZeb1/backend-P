@@ -104,9 +104,7 @@ export const getCustomerPurchases = async (req, res) => {
 // ✅ GET PURCHASES (Vendor)
 export const getVendorPurchases = async (req, res) => {
   try {
-    console.log("Inside getVendorPurchases");
     const vendorId = req.user.id;
-    console.log("vendor " ,vendorId)
 
     const purchases = await VendorPurchase.find({ vendorId })
       .populate({
@@ -116,6 +114,7 @@ export const getVendorPurchases = async (req, res) => {
           { path: "customerId", select: "name email" },
         ],
       })
+      .populate("vendorId", "name shopName") // ✅ populate vendor info
       .sort({ createdAt: -1 });
 
     res.status(200).json({ purchases });
@@ -123,6 +122,7 @@ export const getVendorPurchases = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // ✅ DELETE PURCHASE (linked delete)
 export const deletePurchase = async (req, res) => {

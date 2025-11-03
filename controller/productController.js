@@ -53,7 +53,7 @@ export const createProduct = async (req, res) => {
 export const readAllProducts = async (req, res) => {
   try {
     
-    const products = await Product.find().populate("vendor", "name email role");
+    const products = await Product.find().populate("vendor", "name email role shopName shopType");
 
     if (!products) {
       return res.status(404).json({ message: "No products found" });
@@ -67,7 +67,7 @@ export const readProducts = async (req, res) => {
   try {
     const id = req.user.id;
     console.log("id", id);
-    const products = await Product.find({ vendor: id }).populate("vendor", "name email role");
+    const products = await Product.find({ vendor: id }).populate("vendor", "name email role shopName");
 
     if (!products) {
       return res.status(404).json({ message: "No products found" });

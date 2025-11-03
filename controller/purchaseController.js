@@ -89,10 +89,18 @@ export const purchaseProduct = async (req, res) => {
 // ✅ GET PURCHASES (Customer)
 export const getCustomerPurchases = async (req, res) => {
   try {
-    console.log("Decoded vendorId:", req.user.id);
     const customerId = req.user.id;
+
     const purchases = await CustomerPurchase.find({ customerId })
-      .populate("productId", "productName image price")
+      .populate({
+        path: "productId",
+        select: "productName image price vendor",
+        populate: { path: "vendor", select: "name shopName" } // populate vendor info
+      })
+      .populate({
+        path: "customerId",
+        select: "name email" // populate customer info
+      })
       .sort({ createdAt: -1 });
 
     res.status(200).json({ purchases });
@@ -100,6 +108,8 @@ export const getCustomerPurchases = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 // ✅ GET PURCHASES (Vendor)
 export const getVendorPurchases = async (req, res) => {

@@ -63,20 +63,29 @@ export const assignDelivery = async (req, res) => {
 export const getVendorDeliveries = async (req, res) => {
   try {
     const vendorId = req.user?.id;
+
     const deliveries = await VendorDelivery.find({ vendorId })
-      .populate("deliveryBoyId", "name email")
+      .populate("deliveryBoyId", "name email") // delivery boy info
       .populate({
-        path: "purchaseId", // پہلا relation (VendorDelivery → VendorPurchase)
+        path: "purchaseId", // VendorPurchase reference
         populate: {
-          path: "customerPurchaseId", // دوسرا relation (VendorPurchase → CustomerPurchase)
-          select: "customerName email totalAmount status", // کون سے fields چاہییں
+          path: "customerPurchaseId", // nested populate → CustomerPurchase
+          populate: {
+            path: "productId", // optional: to get product image/title/price
+            select: "title image price",
+          },
+          select: "address phone", // 👈 add this line to get address & phone
         },
       });
+
     res.status(200).json(deliveries);
   } catch (error) {
+    console.error("Error fetching vendor deliveries:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 /**
  * ✅ Get Deliveries Assigned to a Delivery Boy
@@ -84,14 +93,32 @@ export const getVendorDeliveries = async (req, res) => {
 export const getDeliveryBoyDeliveries = async (req, res) => {
   try {
     const deliveryBoyId = req.user?.id;
+
     const deliveries = await DeliveryBoyDelivery.find({ deliveryBoyId })
-      .populate("vendorId", "name email shopName")
-      .populate("purchaseId");
+      .populate("vendorId", "name email shopName") // ✅ Vendor info
+      .populate({
+        path: "purchaseId", // link to VendorPurchase
+        populate: {
+          path: "customerPurchaseId", // link to CustomerPurchase
+          populate: {
+            path: "productId", // link to Product
+            select: "title image price", // ✅ product details
+          },
+          select: "address phone", // ✅ customer address & phone
+        },
+      });
+
+    if (!deliveries || deliveries.length === 0) {
+      return res.status(404).json({ message: "No assigned deliveries found" });
+    }
+
     res.status(200).json(deliveries);
   } catch (error) {
+    console.error("Error fetching delivery boy deliveries:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 /**
  * ✅ Update Delivery Status (for both)

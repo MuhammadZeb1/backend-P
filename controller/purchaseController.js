@@ -91,15 +91,18 @@ export const getCustomerPurchases = async (req, res) => {
   try {
     const customerId = req.user.id;
 
-    const purchases = await CustomerPurchase.find({ customerId })
+    const purchases = await CustomerPurchase.find({
+      customerId,
+      isDeleted: false, // 👈 add this line
+    })
       .populate({
         path: "productId",
         select: "productName image price vendor",
-        populate: { path: "vendor", select: "name shopName" } // populate vendor info
+        populate: { path: "vendor", select: "name shopName" },
       })
       .populate({
         path: "customerId",
-        select: "name email" // populate customer info
+        select: "name email",
       })
       .sort({ createdAt: -1 });
 
@@ -116,7 +119,10 @@ export const getVendorPurchases = async (req, res) => {
   try {
     const vendorId = req.user.id;
 
-    const purchases = await VendorPurchase.find({ vendorId })
+    const purchases = await VendorPurchase.find({
+      vendorId,
+      isDeleted: false, // 👈 add this line
+    })
       .populate({
         path: "customerPurchaseId",
         populate: [
@@ -124,7 +130,7 @@ export const getVendorPurchases = async (req, res) => {
           { path: "customerId", select: "name email" },
         ],
       })
-      .populate("vendorId", "name shopName") // ✅ populate vendor info
+      .populate("vendorId", "name shopName")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ purchases });
@@ -134,11 +140,14 @@ export const getVendorPurchases = async (req, res) => {
 };
 
 
+
 // ✅ DELETE PURCHASE (linked delete)
+// ✅ Soft Delete (Customer or Vendor)
 export const deletePurchase = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Check if vendorPurchase or customerPurchase exists
     const vendorPurchase = await VendorPurchase.findById(id);
     const customerPurchase = await CustomerPurchase.findById(id);
 
@@ -147,14 +156,16 @@ export const deletePurchase = async (req, res) => {
     }
 
     if (vendorPurchase) {
-      await CustomerPurchase.findByIdAndDelete(vendorPurchase.customerPurchaseId);
-      await VendorPurchase.findByIdAndDelete(id);
+      // 🟡 Soft delete both linked documents
+      await VendorPurchase.findByIdAndUpdate(id, { isDeleted: true });
+      await CustomerPurchase.findByIdAndUpdate(vendorPurchase.customerPurchaseId, { isDeleted: true });
     } else {
-      await CustomerPurchase.findByIdAndDelete(id);
+      await CustomerPurchase.findByIdAndUpdate(id, { isDeleted: true });
     }
 
-    res.status(200).json({ message: "✅ Purchase deleted successfully" });
+    res.status(200).json({ message: "✅ Purchase deleted (soft delete)" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+

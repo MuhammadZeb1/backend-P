@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-// kk
 
 const customerPurchaseSchema = new mongoose.Schema({
   customerId: {
@@ -18,6 +17,7 @@ const customerPurchaseSchema = new mongoose.Schema({
   address: { type: String, required: true },
   phone: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
+  isDeleted: { type: Boolean, default: false }, // ✅ Added
 });
 
 export default mongoose.model("CustomerPurchase", customerPurchaseSchema);

@@ -1,50 +1,90 @@
 import VendorDelivery from "../model/vendorDeliveryModel.js";
 import DeliveryBoyDelivery from "../model/deliveryBoyDeliveryModel.js";
 import roleBasedAuthModel from "../model/roleBasedAuthModel.js";
+import mongoose from "mongoose";
 
 /**
  * ✅ Assign Delivery
  * Vendor assigns a delivery to a delivery boy
  */
+import VendorPurchase from "../model/vendorPurchaseModel.js";
+
 export const assignDelivery = async (req, res) => {
   try {
     const vendorId = req.user?.id;
-    console.log("vendor id :", vendorId);
-    const { deliveryBoyId, purchaseId } = req.body;
+    let { deliveryBoyId, purchaseId } = req.body;
+
+    console.log("Starting assignDelivery...");
 
     if (!vendorId || !deliveryBoyId || !purchaseId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // ✅ Convert to ObjectId
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+    const deliveryBoyObjectId = new mongoose.Types.ObjectId(deliveryBoyId);
+    const purchaseObjectId = new mongoose.Types.ObjectId(purchaseId);
+
+    const allPurchases = await VendorPurchase.find({});
+console.log("All VendorPurchases in DB:", allPurchases);
+    console.log("ObjectIds ready:", {
+      vendorObjectId,
+      deliveryBoyObjectId,
+      purchaseObjectId,
+    });
+
+
     // ✅ Check vendor role
-    const vendor = await roleBasedAuthModel.findById(vendorId);
+    const vendor = await roleBasedAuthModel.findById(vendorObjectId);
     if (!vendor || vendor.role !== "vendor") {
       return res
         .status(403)
         .json({ message: "Only vendors can assign deliveries" });
     }
 
+    console.log("Vendor verified:", vendor.name);
+
     // ✅ Check delivery boy role
-    const deliveryBoy = await roleBasedAuthModel.findById(deliveryBoyId);
+    const deliveryBoy = await roleBasedAuthModel.findById(deliveryBoyObjectId);
     if (!deliveryBoy || deliveryBoy.role !== "delivery") {
       return res.status(400).json({ message: "Invalid delivery boy" });
     }
 
-    // ✅ Create vendor-side record
-    const vendorDelivery = new VendorDelivery({
-      vendorId,
-      deliveryBoyId,
-      purchaseId,
-    });
-    await vendorDelivery.save();
+    console.log("Delivery boy verified:", deliveryBoy.name);
 
-    // ✅ Create delivery boy-side record
-    const deliveryBoyDelivery = new DeliveryBoyDelivery({
-      deliveryBoyId,
-      vendorId,
-      purchaseId,
+    // ✅ Find VendorPurchase and ensure it's not already assigned
+    const vendorPurchase = await VendorPurchase.findOne({
+      vendorId: vendorObjectId,
+       _id: purchaseObjectId,
+      isDeleted: false,
     });
-    await deliveryBoyDelivery.save();
+
+    console.log("VendorPurchase found:", vendorPurchase);
+
+    if (!vendorPurchase) {
+      return res
+        .status(400)
+        .json({ message: "Purchase already assigned or not found" });
+    }
+
+    // ✅ Create delivery records
+    const vendorDelivery = await VendorDelivery.create({
+      vendorId:  vendorObjectId,
+      deliveryBoyId: deliveryBoyObjectId,
+      purchaseId: purchaseObjectId,
+      status: "pending",
+    });
+
+    const deliveryBoyDelivery = await DeliveryBoyDelivery.create({
+      deliveryBoyId: deliveryBoyObjectId,
+      vendorId: vendorObjectId,
+      purchaseId: purchaseObjectId,
+      status: "pending",
+    });
+
+    // ✅ Mark purchase as deleted
+    vendorPurchase.isDeleted = true;
+    await vendorPurchase.save();
 
     res.status(201).json({
       message: "Delivery assigned successfully",
@@ -53,7 +93,7 @@ export const assignDelivery = async (req, res) => {
     });
   } catch (error) {
     console.error("Error assigning delivery:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -78,14 +118,12 @@ export const getVendorDeliveries = async (req, res) => {
         },
       });
 
-    res.status(200).json(deliveries);
+    res.status(200).json(deliveries, "hello");
   } catch (error) {
     console.error("Error fetching vendor deliveries:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
-
 
 /**
  * ✅ Get Deliveries Assigned to a Delivery Boy
@@ -119,7 +157,6 @@ export const getDeliveryBoyDeliveries = async (req, res) => {
   }
 };
 
-
 /**
  * ✅ Update Delivery Status (for both)
  */
@@ -145,3 +182,41 @@ export const updateDeliveryStatus = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+/**
+ * ✅ Delete a Delivery Assignment
+ * Vendor can delete a delivery assignment by purchaseId
+ */
+export const deleteDelivery = async (req, res) => {
+  try {
+    const { purchaseId } = req.params; // purchaseId as route param
+    const vendorId = req.user?.id;
+
+    if (!purchaseId) {
+      return res.status(400).json({ message: "purchaseId is required" });
+    }
+
+    // Convert to ObjectId
+    const purchaseObjectId = new mongoose.Types.ObjectId(purchaseId);
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+
+    // Find delivery assigned by this vendor
+    const vendorDelivery = await VendorDelivery.findOne({
+      purchaseId: purchaseObjectId,
+      vendorId: vendorObjectId,
+    });
+
+    if (!vendorDelivery) {
+      return res.status(404).json({ message: "Delivery not found or not authorized" });
+    }
+
+    // Delete from both collections
+    await VendorDelivery.deleteOne({ _id: vendorDelivery._id });
+    await DeliveryBoyDelivery.deleteOne({ purchaseId: purchaseObjectId });
+
+    res.status(200).json({ message: "Delivery assignment deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting delivery:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+

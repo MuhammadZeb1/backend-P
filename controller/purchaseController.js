@@ -6,6 +6,7 @@ import CustomerPurchase from "../model/customerPurchaseModel.js";
 import VendorPurchase from "../model/vendorPurchaseModel.js";
 import Product from "../model/productModel.js";
 import Cart from "../model/cartModel.js";
+import User from '../model/roleBasedAuthModel.js'
 
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -16,24 +17,21 @@ export const purchaseProduct = async (req, res) => {
     const { productId, paymentMethodId, amount, address, phone } = req.body;
     const customerId = req.user.id;
 
-    // 🔎 1. Find cart for this customer
+    // 1️⃣ Find cart
     const cart = await Cart.findOne({ userId: customerId });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
 
-    // 🔎 2. Find product in cart
-    const item = cart.items.find(
-      (i) => i.productId.toString() === productId
-    );
+    // 2️⃣ Find product in cart
+    const item = cart.items.find(i => i.productId.toString() === productId);
     if (!item) return res.status(404).json({ message: "Product not in cart" });
 
     const quantity = item.quantity;
 
-    // 🔎 3. Verify product exists
-    const product = await Product.findById(productId);
-    if (!product)
-      return res.status(404).json({ message: "Product not found" });
+    // 3️⃣ Verify product exists and populate vendor
+    const product = await Product.findById(productId).populate("vendor");
+    if (!product) return res.status(404).json({ message: "Product not found" });
 
-    // 💳 4. Stripe Payment
+    // 4️⃣ Stripe Payment
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount * 100,
       currency: "usd",
@@ -43,13 +41,10 @@ export const purchaseProduct = async (req, res) => {
     });
 
     if (paymentIntent.status !== "succeeded") {
-      return res.status(400).json({
-        message: "❌ Payment failed",
-        status: paymentIntent.status,
-      });
+      return res.status(400).json({ message: "Payment failed", status: paymentIntent.status });
     }
 
-    // 🧾 5. Create Customer Purchase
+    // 5️⃣ Save Customer Purchase
     const customerPurchase = new CustomerPurchase({
       customerId,
       productId,
@@ -61,27 +56,33 @@ export const purchaseProduct = async (req, res) => {
     });
     await customerPurchase.save();
 
-    // 🧾 6. Create Vendor Purchase (linked)
+    // 6️⃣ Fetch customer details for snapshot
+    const customer = await User.findById(customerId);
+
+    // 7️⃣ Save Vendor Purchase with snapshot
     const vendorPurchase = new VendorPurchase({
-     vendorId: product.vendor,
+      vendorId: product.vendor._id,
+      productId,
+      customerId,
       customerPurchaseId: customerPurchase._id,
+      quantity,
+      amount,
+      address,
+      phone,
       status: "Pending",
+      customerName: customer?.name || "Unknown",
+      customerEmail: customer?.email || "Not provided",
+      customerPhone: phone,
+      customerAddress: address,
     });
     await vendorPurchase.save();
 
-    // 🧹 7. Remove purchased item from cart
-    await Cart.updateOne(
-      { userId: customerId },
-      { $pull: { items: { productId } } }
-    );
+    // 8️⃣ Remove item from cart
+    await Cart.updateOne({ userId: customerId }, { $pull: { items: { productId } } });
 
-    res.status(200).json({
-      message: "✅ Product purchased successfully",
-      customerPurchase,
-      vendorPurchase,
-    });
+    res.status(200).json({ message: "Product purchased successfully", customerPurchase, vendorPurchase });
   } catch (error) {
-    console.error("❌ Error:", error.message);
+    console.error("Error:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -119,17 +120,11 @@ export const getVendorPurchases = async (req, res) => {
   try {
     const vendorId = req.user.id;
 
-    const purchases = await VendorPurchase.find({
-      vendorId,
-      isDeleted: false, // 👈 add this line
-    })
-      .populate({
-        path: "customerPurchaseId",
-        populate: [
-          { path: "productId", select: "productName image price" },
-          { path: "customerId", select: "name email" },
-        ],
-      })
+    const purchases = await VendorPurchase.find({ vendorId })
+      .select(
+        "productId customerName customerEmail customerPhone customerAddress quantity amount status createdAt"
+      )
+      .populate({ path: "productId", select: "productName image price" })
       .populate("vendorId", "name shopName")
       .sort({ createdAt: -1 });
 
@@ -141,31 +136,46 @@ export const getVendorPurchases = async (req, res) => {
 
 
 
-// ✅ DELETE PURCHASE (linked delete)
-// ✅ Soft Delete (Customer or Vendor)
+
+// ✅ DELETE PURCHASE (Vendor soft delete)
 export const deletePurchase = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if vendorPurchase or customerPurchase exists
     const vendorPurchase = await VendorPurchase.findById(id);
-    const customerPurchase = await CustomerPurchase.findById(id);
-
-    if (!vendorPurchase && !customerPurchase) {
-      return res.status(404).json({ message: "Purchase not found" });
+    if (!vendorPurchase) {
+      return res.status(404).json({ message: "Vendor purchase not found" });
     }
 
-    if (vendorPurchase) {
-      // 🟡 Soft delete both linked documents
-      await VendorPurchase.findByIdAndUpdate(id, { isDeleted: true });
-      await CustomerPurchase.findByIdAndUpdate(vendorPurchase.customerPurchaseId, { isDeleted: true });
-    } else {
-      await CustomerPurchase.findByIdAndUpdate(id, { isDeleted: true });
-    }
+    await VendorPurchase.findByIdAndDelete(id);
 
-    res.status(200).json({ message: "✅ Purchase deleted (soft delete)" });
+    res.status(200).json({ message: "✅ Vendor purchase permanently deleted" });
   } catch (error) {
+    console.error("❌ Error deleting vendor purchase:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
+
+
+
+
+// DELETE CUSTOMER PURCHASE (soft delete)
+export const deleteCustomerPurchase = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const customerPurchase = await CustomerPurchase.findById(id);
+    if (!customerPurchase) {
+      return res.status(404).json({ message: "Customer purchase not found" });
+    }
+
+    await CustomerPurchase.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "✅ Customer purchase permanently deleted" });
+  } catch (error) {
+    console.error("❌ Error deleting customer purchase:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 

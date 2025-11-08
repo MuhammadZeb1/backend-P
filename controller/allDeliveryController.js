@@ -60,3 +60,35 @@ export const getApprovedDeliveries = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+/**
+ * ✅ Delete an approved delivery boy
+ * Vendor can remove a delivery boy they previously approved
+ */
+export const deleteApprovedDelivery = async (req, res) => {
+  try {
+    const vendorId = req.user.id; // logged-in vendor
+    const { deliveryBoyId } = req.params; // deliveryBoyId as route param
+
+    if (!deliveryBoyId) {
+      return res.status(400).json({ message: "deliveryBoyId is required" });
+    }
+
+    // Find the approved delivery boy record for this vendor
+    const approvedDelivery = await deliveryBoyModel.findOne({
+      vendorId,
+      deliveryId: deliveryBoyId,
+    });
+
+    if (!approvedDelivery) {
+      return res.status(404).json({ message: "Approved delivery boy not found" });
+    }
+
+    // Delete the record from deliveryBoyModel
+    await deliveryBoyModel.deleteOne({ _id: approvedDelivery._id });
+
+    res.status(200).json({ message: "Approved delivery boy removed successfully" });
+  } catch (error) {
+    console.error("Error deleting approved delivery boy:", error);
+    res.status(500).json({ message: error.message });
+  }
+};

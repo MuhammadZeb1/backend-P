@@ -170,25 +170,37 @@ export const updateDeliveryStatus = async (req, res) => {
 export const deleteDelivery = async (req, res) => {
   try {
     const { purchaseId } = req.params;
-    const vendorId = req.user?.id;
+    const userId = req.user?.id; // whoever is logged in
+    const userRole = req.user?.role;
 
     if (!purchaseId) {
       return res.status(400).json({ message: "purchaseId is required" });
     }
 
     const purchaseObjectId = new mongoose.Types.ObjectId(purchaseId);
-    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
 
-    const vendorDelivery = await VendorDelivery.findOne({
-      purchaseId: purchaseObjectId,
-      vendorId: vendorObjectId,
-    });
+    let vendorDelivery, deliveryBoyDelivery;
 
-    if (!vendorDelivery) {
-      return res.status(404).json({ message: "Delivery not found or not authorized" });
+    if (userRole === "vendor") {
+      vendorDelivery = await VendorDelivery.findOne({
+        purchaseId: purchaseObjectId,
+        vendorId: userId,
+      });
+      if (!vendorDelivery)
+        return res.status(404).json({ message: "Delivery not found or not authorized" });
     }
 
-    await VendorDelivery.deleteOne({ _id: vendorDelivery._id });
+    if (userRole === "delivery") {
+      deliveryBoyDelivery = await DeliveryBoyDelivery.findOne({
+        purchaseId: purchaseObjectId,
+        deliveryBoyId: userId,
+      });
+      if (!deliveryBoyDelivery)
+        return res.status(404).json({ message: "Delivery not found or not authorized" });
+    }
+
+    // Delete from both collections
+    await VendorDelivery.deleteOne({ purchaseId: purchaseObjectId });
     await DeliveryBoyDelivery.deleteOne({ purchaseId: purchaseObjectId });
 
     res.status(200).json({ message: "Delivery assignment deleted successfully" });
@@ -197,3 +209,4 @@ export const deleteDelivery = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+

@@ -22,6 +22,8 @@ export const addDelivery = async (req, res) => {
     const vendorId = req.user.id;
     const { deliveryId } = req.body;
 
+    console.log("delviery ",deliveryId)
+
     // ✅ Step 1: Create new approval record
     const newApproval = new deliveryBoyModel({
       vendorId,
@@ -31,7 +33,7 @@ export const addDelivery = async (req, res) => {
     await newApproval.save();
 
     // ✅ Step 2: Remove that delivery boy from roleBasedAuth list
-    await Delivery.findByIdAndDelete(deliveryId);
+    // await Delivery.findByIdAndDelete(deliveryId);
 
     res.status(201).json({
       message: "Delivery boy approved successfully and removed from allDelivery list",
@@ -47,19 +49,23 @@ export const getApprovedDeliveries = async (req, res) => {
   try {
     const vendorId = req.user.id;
 
-    const approvedDeliveries = await deliveryBoyModel
-      .find({ vendorId })
-      .populate("deliveryId", "name email address cnicNumber ImageUrl");
+    const approved = await deliveryBoyModel
+      .find({ vendorId, deliveryId: { $ne: null } })
+      .populate("deliveryId", "name email cnicNumber address ImageUrl");
 
-    if (!approvedDeliveries || approvedDeliveries.length === 0) {
-      return res.status(404).json({ message: "No approved deliveries found" });
-    }
+    // Filter just in case
+    const filteredApproved = approved.filter(d => d.deliveryId !== null);
 
-    res.status(200).json(approvedDeliveries);
+    console.log("Approved deliveries:", filteredApproved);
+
+    res.status(200).json(filteredApproved);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch approved deliveries" });
   }
 };
+
+
 /**
  * ✅ Delete an approved delivery boy
  * Vendor can remove a delivery boy they previously approved

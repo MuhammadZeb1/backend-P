@@ -73,21 +73,25 @@ export const getApprovedDeliveries = async (req, res) => {
 export const deleteApprovedDelivery = async (req, res) => {
   try {
     const vendorId = req.user.id; // logged-in vendor
+    console.log("jjjj")
     const { deliveryBoyId } = req.params; // deliveryBoyId as route param
-
+console.log("2")
     if (!deliveryBoyId) {
       return res.status(400).json({ message: "deliveryBoyId is required" });
     }
+    console.log("3")
 
     // Find the approved delivery boy record for this vendor
     const approvedDelivery = await deliveryBoyModel.findOne({
       vendorId,
       deliveryId: deliveryBoyId,
     });
-
+    console.log("kkk",approvedDelivery.deliveryId)
+     console.log("4")
     if (!approvedDelivery) {
       return res.status(404).json({ message: "Approved delivery boy not found" });
     }
+    console.log("5")
 
     // Delete the record from deliveryBoyModel
     await deliveryBoyModel.deleteOne({ _id: approvedDelivery._id });

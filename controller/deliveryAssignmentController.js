@@ -168,6 +168,7 @@ export const updateDeliveryStatus = async (req, res) => {
  * ✅ Delete a Delivery Assignment
  */
 export const deleteDelivery = async (req, res) => {
+  console.log("kkkk")
   try {
     const { purchaseId } = req.params;
     const userId = req.user?.id;

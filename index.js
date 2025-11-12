@@ -12,7 +12,9 @@ import deliveryAssignmentRoutes  from "./routes/deliveryAssignmentRoutes.js"
 
 const app = express()
 app.use(cors({
-    origin:"http://localhost:5173",
+    // origin:"http://localhost:5173",""
+    origin:["http://localhost:5173","https://fyp-frontend-mu.vercel.app"],
+    methods:["GET","POST","PATCH","DELETE"],
     credentials:true
 }))
 // app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

@@ -9,7 +9,9 @@ import Cart from "../model/cartModel.js";
 import User from '../model/roleBasedAuthModel.js'
 
 dotenv.config();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY,{
+  apiVersion: "2022-11-15",
+});
 
 // ✅ PURCHASE PRODUCT
 export const purchaseProduct = async (req, res) => {
@@ -141,6 +143,7 @@ export const getVendorPurchases = async (req, res) => {
 export const deletePurchase = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("id ",id)
 
     const vendorPurchase = await VendorPurchase.findById(id);
     if (!vendorPurchase) {
